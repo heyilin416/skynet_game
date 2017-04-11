@@ -1,0 +1,22 @@
+root = "./"
+common = "../common/"
+skynetRoot = "../3rd/skynet/"
+
+luaservice = root .. "service/?.lua;" .. common .. "service/?.lua;" .. skynetRoot .. "service/?.lua"
+lualoader = skynetRoot .. "lualib/loader.lua"
+lua_path = root .. "lualib/?.lua;" .. common .. "lualib/?.lua;" .. skynetRoot .. "lualib/?.lua"
+lua_cpath = skynetRoot .. "luaclib-win/?.so"
+cpath = skynetRoot .. "cservice-win/?.so"
+
+thread = 8
+logger = "logd"
+logservice = "snlua"
+logpath = "."
+harbor = 0
+start = "main"
+bootstrap = "snlua bootstrap"
+
+logLevel = 1
+logIsPrint = true
+logPath = "./log"
+logFlushInterval = 5
