@@ -1,6 +1,6 @@
 local skynet = require "skynet"
 
-local log = {
+log = {
 	prefix = {
 		"[debug]",
 		"[info]",
@@ -68,4 +68,15 @@ function log.errf(...)
 end
 
 log.level(tonumber(skynet.getenv("logLevel")) or 3)
-return log
+
+function strTime(time)
+	return os.date("%Y-%m-%d %H:%M:%S", math.ceil(time))
+end
+
+function strNowTime()
+	return strTime(skynet.time())
+end
+
+function strToLuaObj(str)
+	return load("return " .. str)()
+end

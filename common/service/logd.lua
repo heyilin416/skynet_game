@@ -1,6 +1,5 @@
 local skynet = require "skynet"
 require "skynet.manager"
-local util = require "util"
 
 local file = nil
 local isPrint = skynet.getenv("logIsPrint") == "true" and true or false
@@ -18,7 +17,7 @@ skynet.register_protocol {
 	id = skynet.PTYPE_TEXT,
 	unpack = skynet.tostring,
 	dispatch = function(_, address, msg)
-		content = string.format("%s(:%08x): %s", util.strNowTime(), address, msg)
+		content = string.format("%s(:%08x): %s", strNowTime(), address, msg)
 		file:write(content, "\n")
 
 		if isPrint then
