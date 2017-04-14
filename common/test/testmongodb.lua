@@ -132,19 +132,19 @@ end
 local function test_find()
 	testDB:drop(testCollection)
 
-	testDB:insert(testCollection, {_id = 1, value = 1})
+	testDB:insert(testCollection, {_id = 1, value1 = 1, value2 = 2})
 	result = testDB:find(testCollection, {_id = 1})
 	print("test_find", result)
-	assert(result.value == 1)
+	assert(result.value1 == 1 and result.value2 == 2)
 end
 
 local function test_findId()
 	testDB:drop(testCollection)
 
-	testDB:insert(testCollection, {_id = 1, value = 1})
-	result = testDB:findId(testCollection, 1)
+	testDB:insert(testCollection, {_id = 1, value1 = 1, value2 = 2})
+	result = testDB:findId(testCollection, 1, {value2 = 1})
 	print("test_findId", result)
-	assert(result.value == 1)
+	assert(result.value1 == nil and result.value2 == 2)
 end
 
 local function test_findAll()
