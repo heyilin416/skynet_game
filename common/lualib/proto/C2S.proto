@@ -1,0 +1,16 @@
+.package {
+	type 0 : integer
+	session 1 : integer
+}
+
+LoginAccount 1 {
+	request {
+		accountName 0 : string
+		password 1 : string
+	}
+
+	response {
+		result 0 : integer
+		token 1 : string
+	}
+}
