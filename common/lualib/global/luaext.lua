@@ -68,6 +68,28 @@ table.merge = function(dest, src)
     end
 end
 
+table.sub = function(t, i, j)
+    if i < 1 then
+        i = 1
+    end
+
+    local len = #t
+    if j ~= nil then
+        j = i + j - 1
+        if j > len then
+            j = len
+        end
+    else
+        j = len
+    end
+
+    local subTable = {}
+    for k = i, j do
+        table.insert(subTable, t[k])
+    end
+    return subTable
+end
+
 -- string扩展
 
 -- 下标运算

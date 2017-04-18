@@ -1,10 +1,10 @@
 local skynet = require "skynet"
 local socket = require "socket"
-local syslog = require "syslog"
 
-local session_id = 1
-local slave = {}
 local nslave
+local slave = {}
+local accountToken = {}
+local sessionExpireTime
 
 local CMD = {}
 
@@ -16,11 +16,13 @@ function CMD.init(conf)
     end
     nslave = #slave
 
+    sessionExpireTime = conf.sessionExpireTime * 100
+
     local host = conf.host or "0.0.0.0"
     local port = assert(tonumber(conf.port))
     local sock = socket.listen(host, port)
 
-    syslog.noticef("listen on %s:%d", host, port)
+    log.noticef("listen on %s:%d", host, port)
 
     local balance = 1
     socket.start(sock, function(fd, addr)
@@ -28,27 +30,28 @@ function CMD.init(conf)
         balance = balance + 1
         if balance > nslave then balance = 1 end
 
-        skynet.call(s, "lua", "auth", fd, addr)
+        skynet.send(s, "lua", "auth", fd, addr)
+        log.debugf("new connection : (fd=%d, addr=%s)", fd, addr)
     end)
 end
 
-function CMD.save_session(account, key, challenge)
-    session = session_id
-    session_id = session_id + 1
-
-    s = slave[(session % nslave) + 1]
-    skynet.call(s, "lua", "save_session", session, account, key, challenge)
-    return session
+function CMD.saveToken(accountId, token)
+    accountToken[accountId] = token
+    skynet.timeout(sessionExpireTime, function()
+        if accountToken[accountId] then
+            accountToken[accountId] = nil
+            log.warningf("%s account of token is expire", accountId)
+        end
+    end)
 end
 
-function CMD.challenge(session, challenge)
-    s = slave[(session % nslave) + 1]
-    return skynet.call(s, "lua", "challenge", session, challenge)
-end
-
-function CMD.verify(session, token)
-    local s = slave[(session % nslave) + 1]
-    return skynet.call(s, "lua", "verify", session, token)
+function CMD.checkToken(accountId, token)
+    if accountToken[accountId] == token then
+        accountToken[accountId] = nil
+        return ErrorCode.SUCCESS
+    else
+        return ErrorCode.ERR_TOKEN
+    end
 end
 
 skynet.start(function()

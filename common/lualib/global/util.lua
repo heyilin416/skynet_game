@@ -23,7 +23,7 @@ end
 
 local function writef(priority, ...)
 	if priority >= level then
-		skynet.error(log.prefix[priority] .. string.format(...))
+		skynet.error(log.prefix[priority], string.format(...))
 	end
 end
 
@@ -59,11 +59,11 @@ function log.warningf(...)
 	writef(4, ...)
 end
 
-function log.err(...)
+function log.error(...)
 	write(5, ...)
 end
 
-function log.errf(...)
+function log.errorf(...)
 	writef(5, ...)
 end
 
@@ -79,4 +79,12 @@ end
 
 function strToLuaObj(str)
 	return load("return " .. str)()
+end
+
+function strToHex(str)
+	local hex = ""
+	for i=1, #str do
+		hex = hex .. string.format("%02x", str:byte(i))
+	end
+	return hex
 end

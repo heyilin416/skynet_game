@@ -23,5 +23,10 @@ logIsPrint = true
 logPath = "./log"
 logFlushInterval = 5
 
-loginDB = [[{maxConn = 8, dbName = "login", host = "127.0.0.1"}]]
-loginServer = [[{slave = 8, sessionExpireTime = 600, authTimeout = 10, port = 10001}]]
+loginIp = "127.0.0.1"
+loginPort = 10001
+serverId = 1
+accountPrefixName = "test"
+password = "123456"
+clientBegin = 1
+clientEnd = 1

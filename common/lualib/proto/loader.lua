@@ -22,4 +22,14 @@ function loader.load()
 	return host, request
 end
 
+function loader.loadClient()
+	if host and request then
+		return host, request
+	end
+
+	host = sprotoloader.load(loader.S2C):host("package")
+	request = host:attach(sprotoloader.load(loader.C2S))
+	return host, request
+end
+
 return loader

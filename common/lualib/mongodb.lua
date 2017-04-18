@@ -1,4 +1,5 @@
 local skynet = require "skynet"
+require "skynet.manager"
 
 local MongoDB = class("MongoDB")
 
@@ -8,9 +9,14 @@ local function checkResult(result, n)
 	end
 end
 
-function MongoDB:init(conf)
-	self._serviceAddr = skynet.newservice("mongodbd")
-	skynet.call(self._serviceAddr, "lua", "init", conf)
+function MongoDB:init(localName, conf)
+    local addr = skynet.localname(localName)
+    if not addr then
+        addr = skynet.newservice("mongodbd")
+        skynet.name(localName, addr)
+        skynet.call(addr, "lua", "init", conf)
+    end
+    self._serviceAddr = addr
 end
 
 function MongoDB:insert(collection, doc)

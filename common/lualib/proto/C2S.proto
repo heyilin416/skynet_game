@@ -11,6 +11,7 @@ LoginAccount 1 {
 
 	response {
 		result 0 : integer
-		token 1 : string
+		accountID 1 : string
+		token 2 : string
 	}
 }
