@@ -24,23 +24,29 @@ local function close(fd)
     if connection[fd] then
         socket.close(fd)
         connection[fd] = nil
+        log.info("socket close", fd)
     end
 end
 
 local function read(fd, size)
-    return socket.read(fd, size) or error(string.format("connection %d read error", fd))
+    return socket.read(fd, size)
 end
 
 local function readMsg(fd)
-    local s = read(fd, 2)
-    local size = s:byte(1) * 256 + s:byte(2)
-    local msg = read(fd, size)
-    return host:dispatch(msg, size)
-end
+    local s = read(fd, PACKET_HEAD_SIZE)
+    if not s then
+        close(fd)
+        return s
+    end
 
-local function sendMsg(fd, msg)
-    local package = string.pack(">s2", msg)
-    socket.write(fd, package)
+    local size = unpackPacketHead(s)
+    local msg = read(fd, size)
+    if not msg then
+        close(fd)
+        return msg
+    end
+
+    return host:dispatch(msg, size)
 end
 
 function CMD.auth(fd, addr)
@@ -55,27 +61,33 @@ function CMD.auth(fd, addr)
     socket.start(fd)
     socket.limit(fd, 8192)
 
-    local type, name, args, response = readMsg(fd)
-    assert(type == "REQUEST", name == "LoginAccount")
+    local mType, name, args, response = readMsg(fd)
+    if not mType then
+        return
+    end
+
+    assert(mType == "REQUEST" and name == "LoginAccount")
     local accountInfo = loginDB:find("account", {accountName = args.accountName})
     if accountInfo then
         if accountInfo.password ~= args.password then
-            sendMsg(fd, response {result = errorCode})
+            sendMsg(fd, response{result = ErrorCode.ERR_PASSWORD})
             close(fd)
             return
         end
     else
-        accountInfo = {_id = bson.objectid(), accountName = args.accountName, password = md5.sumhexa(args.password)}
+        accountInfo = {_id = bson.objectid(), accountName = args.accountName, password = args.password}
         loginDB:insert("account", accountInfo)
     end
 
     local token = md5.sumhexa(accountInfo._id .. skynet.time())
     skynet.call(master, "lua", "saveToken", accountInfo._id, token)
 
+    local servers = loginDB:findAll("server")
     local msg = response{
         result = ErrorCode.SUCCESS,
-        accountID = accountInfo._id, 
+        accountId = accountInfo._id, 
         token = token,
+        servers = servers,
     }
     sendMsg(fd, msg)
     close(fd)

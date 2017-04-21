@@ -32,7 +32,7 @@ end
 
 function RESPONSE.LoginGame(name, request, response)
     if response.result == ErrorCode.SUCCESS then
-        user:call("LoginUser", {userId = response.users[1]._id})
+        user:call("LoginUser", {userId = bson.objectid()})
     else
         user:logRequestError(name, response.result)
     end

@@ -1,4 +1,5 @@
 local skynet = require "skynet"
+local socketdriver = require "socketdriver"
 
 log = {
 	prefix = {
@@ -87,4 +88,13 @@ function strToHex(str)
 		hex = hex .. string.format("%02x", str:byte(i))
 	end
 	return hex
+end
+
+function unpackPacketHead(msg)
+	return string.unpack(PACKET_HEAD_PACK_FMT, msg)
+end
+
+function sendMsg(fd, msg)
+    local package = string.pack(PACKET_PACK_FMT, msg)
+    socketdriver.send(fd, package)
 end

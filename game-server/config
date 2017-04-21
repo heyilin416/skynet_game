@@ -17,16 +17,12 @@ harbor = 0
 start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
+cluster = common .. "lualib/clustername.lua"
 
 logLevel = 1
 logIsPrint = true
 logPath = "./log"
 logFlushInterval = 5
 
-loginIp = "127.0.0.1"
-loginPort = 10001
-serverId = 1
-accountPrefixName = "test"
-password = "123456"
-clientBegin = 1
-clientEnd = 5
+gameServer = [[{agentInitPool = 5, maxclient = 1024, nodelay = true, port = 10002}]]
+gameDB = [[{maxConn = 8, dbName = "game", host = "127.0.0.1"}]]

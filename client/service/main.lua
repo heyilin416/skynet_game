@@ -11,7 +11,7 @@ skynet.start(function()
 	for i = clientBegin, clientEnd do
 		local accountName = skynet.getenv("accountPrefixName") .. i
 		local client = skynet.newservice("client")
-		skynet.send(client, "lua", "init", serverId, accountName, password)
+		skynet.call(client, "lua", "init", serverId, accountName, password)
 	end
 
 	log.notice("client start finish")

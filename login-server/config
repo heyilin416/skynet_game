@@ -17,6 +17,7 @@ harbor = 0
 start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
+cluster = common .. "lualib/clustername.lua"
 
 logLevel = 1
 logIsPrint = true

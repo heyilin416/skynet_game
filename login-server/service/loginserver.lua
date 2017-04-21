@@ -1,5 +1,6 @@
 local skynet = require "skynet"
 local socket = require "socket"
+local cluster = require "cluster"
 
 local nslave
 local slave = {}
@@ -22,7 +23,7 @@ function CMD.init(conf)
     local port = assert(tonumber(conf.port))
     local sock = socket.listen(host, port)
 
-    log.noticef("listen on %s:%d", host, port)
+    skynet.error(string.format("Listen on %s:%d", host, port))
 
     local balance = 1
     socket.start(sock, function(fd, addr)
@@ -31,8 +32,10 @@ function CMD.init(conf)
         if balance > nslave then balance = 1 end
 
         skynet.send(s, "lua", "auth", fd, addr)
-        log.debugf("new connection : (fd=%d, addr=%s)", fd, addr)
+        log.info("socket connect", fd, addr)
     end)
+
+    cluster.register("loginServer")
 end
 
 function CMD.saveToken(accountId, token)

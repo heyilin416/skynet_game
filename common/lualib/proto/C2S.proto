@@ -3,6 +3,21 @@
 	session 1 : integer
 }
 
+.ServerInfo {
+	_id 0 : integer
+	showId 1 : integer
+	name 2 : string
+	address 3 : string
+	status 4 : integer
+}
+
+.UserInfo {
+	_id 0 : string
+	name 1 : string
+	pic 2 : integer
+	level 3 : integer
+}
+
 LoginAccount 1 {
 	request {
 		accountName 0 : string
@@ -11,7 +26,32 @@ LoginAccount 1 {
 
 	response {
 		result 0 : integer
-		accountID 1 : string
+		accountId 1 : string
 		token 2 : string
+		servers 3 : *ServerInfo
+	}
+}
+
+LoginGame 2 {
+	request {
+		accountId 0 : string
+		accountName 1 : string
+		token 2 : string
+	}
+
+	response {
+		result 0 : integer
+		users 1 : *UserInfo
+	}
+}
+
+LoginUser 3 {
+	request {
+		userId 0 : string
+	}
+
+	response {
+		result 0 : integer
+		user 1 : UserInfo
 	}
 }

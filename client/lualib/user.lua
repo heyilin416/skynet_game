@@ -1,5 +1,6 @@
 local skynet = require "skynet"
 local socket = require "socket"
+local md5 = require "md5"
 local protoloader = require "proto.loader"
 local loginHandler = require "handler.login"
 
@@ -16,22 +17,23 @@ function User:ctor(serverId, accountName, password)
     self.sessionId = 0
     self.session = {}
 
-    self.request = {}
-    self.response = {}
+    self.REQUEST = {}
+    self.RESPONSE = {}
     loginHandler:register(self)
 end
 
 function User:connect(ip, port)
     while true do
-        local ok, fd = pcall(socket.open, ip, port)
-        if ok then
+        local fd, err = socket.open(ip, port)
+        if not err then
             self.fd = fd
             self.lastReadBuff = ""
-            skynet.fork(self.dispatchMsg, self)
-            break
+            skynet.fork(self.dispatchMsg, self, self.fd)
+            log.infof("%s connect(ip=%s, port=%s) is success", self.accountName, ip, port)
+            return
         end
 
-        log.errorf("%s connect(ip=%s, port=%d) is error", self.accountName, ip, port)
+        log.errorf("%s connect(ip=%s, port=%s) is error", self.accountName, ip, port)
         skynet.sleep(500)
     end
 end
@@ -41,7 +43,8 @@ function User:login()
     local port = tonumber(skynet.getenv("loginPort"))
     self:connect(ip, port)
 
-    self:call("LoginAccount", {accountName = self.accountName, password = self.password})
+    log.infof("%s start login", self.accountName)
+    self:call("LoginAccount", {accountName = self.accountName, password = md5.sumhexa(self.password)})
 end
 
 function User:close(isActive)
@@ -51,42 +54,48 @@ function User:close(isActive)
     end
 
     if not isActive then
+        log.infof("%s after 5 sec login again", self.accountName)
+        skynet.sleep(500)
         self:login()
     end
 end
 
 function User:read(size)
-    return socket.read(self.fd, size) or error(string.format("connection %d read error", self.fd))
+    return socket.read(self.fd, size)
 end
 
 function User:readMsg()
-    local s = self:read(2)
-    local size = s:byte(1) * 256 + s:byte(2)
+    local s = self:read(PACKET_HEAD_SIZE)
+    if not s then
+        return s
+    end
+
+    local size =unpackPacketHead(s)
     local msg = self:read(size)
+    if not msg then
+        return msg
+    end
+
     return host:dispatch(msg, size)
 end
 
-function User:dispatchMsg()
+function User:dispatchMsg(fd)
     local handle = function()
         self:handleMsg(self:readMsg())
     end
 
-    while self.fd do
+    while self.fd == fd do
         local ok, err = xpcall(handle, traceback)
         if not ok then
-            log.warningf("dispatchMsg error : %s", err)
+            log.errorf("dispatchMsg error : %s", err)
+			self:close()
             break
         end
-    end
-
-    if self.fd then
-        self:close()
     end
 end
 
 function User:sendMsg(msg)
-    local package = string.pack(">s2", msg)
-    socket.write(self.fd, package)
+    sendMsg(self.fd, msg)
 end
 
 function User:call(name, args)
@@ -100,8 +109,11 @@ function User:send(name, args)
     self:sendMsg(request(name, args))
 end
 
-function User:handleMsg(type, ...)
-    if type == "REQUEST" then
+function User:handleMsg(mType, ...)
+    if not mType then
+        log.errorf("%s socket by remote closed", self.accountName)
+        self:close()
+    elseif mType == "REQUEST" then
         self:handleRequest(...)
     else
         self:handleResponse(...)
@@ -109,11 +121,11 @@ function User:handleMsg(type, ...)
 end
 
 function User:handleRequest(name, args, response)
-    local f = self.request[name]
+    local f = self.REQUEST[name]
     if f then
-        local ok, ret = xpcall(f, traceback, args)
+        local ok, ret = xpcall(f, traceback, name, args)
         if not ok then
-            log.warningf("handle message(%s) failed : %s", name, ret)
+            log.errorf("handle request(%s) failed : %s", name, ret)
             self:close()
         else
             if response and ret then
@@ -121,7 +133,7 @@ function User:handleRequest(name, args, response)
             end
         end
     else
-        log.warningf("unhandled message : %s", name)
+        log.errorf("unhandled request : %s", name)
         self:close()
     end
 end
@@ -129,23 +141,27 @@ end
 function User:handleResponse(id, args)
     local s = self.session[id]
     if not s then
-        log.warningf("session %d not found", id)
+        log.errorf("session %d not found", id)
         self:close()
         return
     end
 
-    local f = self.response[s.name]
+    local f = self.RESPONSE[s.name]
     if not f then
-        log.warningf("unhandled response : %s", s.name)
+        log.errorf("unhandled response : %s", s.name)
         self:close()
         return
     end
 
-    local ok, ret = xpcall(f, traceback, s.args, args)
+    local ok, ret = xpcall(f, traceback, s.name, s.args, args)
     if not ok then
-        log.warningf("handle response(%d-%s) failed : %s", id, s.name, ret)
+        log.errorf("handle response(%d-%s) failed : %s", id, s.name, ret)
         self:close()
     end
+end
+
+function User:logRequestError(name, errorCode)
+    log.errorf("%s request %s is error(%s)", self.accountName, name, errorCode)
 end
 
 return User
