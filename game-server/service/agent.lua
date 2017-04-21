@@ -22,15 +22,17 @@ skynet.register_protocol {
 local CMD = {}
 
 function CMD.login(fd, userId)
-	if not user then
-		user = User.new(gated, fd, userId)
+	if user then
+		assert(user.data._id == userId)
+	else
+		user = User.new(gated, userId)
 	end
-	return user.data
+	return user:login(fd)
 end
 
 function CMD.logout()
 	if user then
-		oldUser = user
+		local oldUser = user
 		user = nil
 		oldUser:logout()
 	end
@@ -39,6 +41,12 @@ end
 function CMD.kick()
 	if user then
 		user:kick()
+	end
+end
+
+function CMD.close()
+	if user then
+		user:close()
 	end
 end
 

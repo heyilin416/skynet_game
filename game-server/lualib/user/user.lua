@@ -7,9 +7,8 @@ local _, request = protoloader.load()
 
 local User = class("User")
 
-function User:ctor(gated, fd, userId)
+function User:ctor(gated, userId)
     self.gated = gated
-    self.fd = fd
     self.data = gameDB:findId("user", userId)
 
     self.sessionId = 0
@@ -17,21 +16,36 @@ function User:ctor(gated, fd, userId)
 
     self.REQUEST = {}
     self.RESPONSE = {}
+end
 
+function User:login(fd)
+    self.fd = fd
     log.infof("%s user login", self.data.name)
+    return self.data
 end
 
 function User:logout()
     skynet.call(self.gated, "lua", "logout", self.data.accountId)
-    log.infof("%s user logout", userData.name)
+    log.infof("%s user logout", self.data.name)
 end
 
 function User:kick()
-    skynet.call(self.gated, "lua", "kick", self.fd)
+    if self.fd then
+        skynet.call(self.gated, "lua", "kick", self.fd)
+        log.infof("%s user kick", self.data.name)
+    end
+end
+
+function User:close()
+    if self.fd then
+        self.fd = nil
+    end
 end
 
 function User:sendMsg(msg)
-    sendMsg(self.fd, msg)
+    if self.fd then
+        sendMsg(self.fd, msg)
+    end
 end
 
 function User:call(name, args)

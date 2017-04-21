@@ -47,7 +47,9 @@ local function loginUser(fd, userData)
     local accountInfo = onlineAccounts[userData.accountId]
     if accountInfo then
         if accountInfo.userId == userData._id then
-            skynet.call(accountInfo.c.agent, "lua", "kick")
+            if accountInfo.c.fd then
+                skynet.call(accountInfo.c.agent, "lua", "kick")
+            end
             agent = accountInfo.c.agent
         else
             skynet.call(accountInfo.c.agent, "lua", "logout")
@@ -67,7 +69,7 @@ local function loginUser(fd, userData)
     c.agent = agent
     onlineAccounts[userData.accountId] = { c = c, userId = userData._id }
     onlineUsers[userData._id] = c
-    return skynet.call(agent, "lua", "login", fd, response, userData._id)
+    return skynet.call(agent, "lua", "login", fd, userData._id)
 end
 
 local function close(fd)
@@ -75,6 +77,7 @@ local function close(fd)
     if c then
         c.fd = nil
         connections[fd] = nil
+        skynet.call(c.agent, "lua", "close")
     end
 end
 
@@ -135,18 +138,18 @@ function handler.message(fd, msg, size)
                         if name == "LoginGame" then
                             c.isCheck = true
                         elseif name == "LoginUser" then
-                        	if loginLocks[ret.user.accountId] then
+                            local accountId = ret.user.accountId
+                        	if loginLocks[accountId] then
                         		ret = {result = ErrorCode.ERR_USER_IS_LOGINING}
                         	else
-                        		loginLocks[ret.user.accountId] = true
-                            	ret.user = loginUser(fd, ret.user)
+                        		loginLocks[accountId] = true
                             	local ok, user = xpcall(loginUser, traceback, fd, ret.user)
                             	if ok then
                             		ret.user = user
                             	else
                             		log.error("login user failed :", user)
                             	end
-                            	loginLocks[ret.user.accountId] = nil
+                            	loginLocks[accountId] = nil
                             end
                         end
                     end
@@ -179,7 +182,6 @@ function CMD.logout(accountId)
         onlineUsers[accountInfo.userId] = nil
         table.insert(agentPool, accountInfo.c.agent)
         kick(accountInfo.c.fd)
-        log.infof("user(accountId=%s, userId=%s) is logout", accountId, accountInfo.userId)
     end
 end
 
