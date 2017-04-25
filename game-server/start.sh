@@ -1,1 +1,1 @@
-./3rd/skynet/skynet config
+../3rd/skynet/skynet config
