@@ -3,6 +3,7 @@ local protoloader = require "proto.loader"
 
 skynet.start(function()
 	protoloader.init()
+	skynet.uniqueservice("debug_console", skynet.getenv("debug_console"))
 
 	local serverId = tonumber(skynet.getenv("serverId"))
 	local password = skynet.getenv("password")

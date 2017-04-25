@@ -17,6 +17,7 @@ harbor = 0
 start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
+debug_console = 9000
 
 logLevel = 1
 logIsPrint = true

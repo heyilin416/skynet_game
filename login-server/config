@@ -18,6 +18,7 @@ start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
 cluster = common .. "lualib/clustername.lua"
+debug_console = 8000
 
 logLevel = 1
 logIsPrint = true
