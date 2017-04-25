@@ -1,0 +1,29 @@
+root = "./"
+common = "../common/"
+skynetRoot = "../3rd/skynet/"
+
+testservice = root .. "test/?.lua;" .. common .. "test/?.lua;" .. skynetRoot .. "test/?.lua"
+luaservice = root .. "service/?.lua;" .. common .. "service/?.lua;" .. skynetRoot .. "service/?.lua;" .. testservice
+lualoader = skynetRoot .. "lualib/loader.lua"
+lua_path = root .. "lualib/?.lua;" .. common .. "lualib/?.lua;" .. skynetRoot .. "lualib/?.lua"
+lua_cpath = skynetRoot .. "luaclib/?.so"
+cpath = skynetRoot .. "cservice/?.so"
+
+thread = 8
+logger = "logd"
+logservice = "snlua"
+logpath = "."
+harbor = 0
+start = "main"
+bootstrap = "snlua bootstrap"
+preload = common .. "lualib/global/preload.lua"
+cluster = common .. "lualib/clustername.lua"
+debug_console = 8000
+
+logLevel = 1
+logIsPrint = true
+logPath = "./log"
+logFlushInterval = 5
+
+loginDB = [[{maxConn = 8, dbName = "login", host = "127.0.0.1"}]]
+loginServer = [[{slave = 8, sessionExpireTime = 600, authTimeout = 10, port = 10001}]]

@@ -1,1 +1,1 @@
-start ..\3rd\skynet\skynet.exe config
+start ..\3rd\skynet\skynet.exe config-win
