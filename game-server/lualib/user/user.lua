@@ -42,7 +42,7 @@ function User:heartBeatCheck()
 
     local t = MAX_HEART_BEAT_TIME - (skynet.now() - self.lastHeartBeatTime)
     if t <= 0 then
-        --skynet.send(skynet.self(), "lua", "kick")
+        skynet.send(skynet.self(), "lua", "kick")
     else
         skynet.timeout(t, function()
             self:heartBeatCheck()
