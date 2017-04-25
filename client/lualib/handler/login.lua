@@ -40,10 +40,15 @@ end
 
 function RESPONSE.LoginUser(name, request, response)
     if response.result == ErrorCode.SUCCESS then
-        print(response)
+        user.data = response.user
+        user.lastHeartBeatTime = skynet.now()
+        user:heartBeatCheck()
     else
         user:logRequestError(name, response.result)
     end
+end
+
+function RESPONSE.HeartBeat(name, request, response)
 end
 
 return handler

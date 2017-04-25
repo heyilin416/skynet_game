@@ -24,5 +24,7 @@ logIsPrint = true
 logPath = "./log"
 logFlushInterval = 5
 
+maxHeartBeatTime = 10
+kickToLogoutTime = 1800
 gameServer = [[{agentInitPool = 5, maxclient = 1024, nodelay = true, port = 10002}]]
 gameDB = [[{maxConn = 8, dbName = "game", host = "127.0.0.1"}]]

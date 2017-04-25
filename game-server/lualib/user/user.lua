@@ -1,9 +1,12 @@
 local skynet = require "skynet"
 local gameDB = require "db.game"
 local protoloader = require "proto.loader"
+local otherHandler = require "user.handler.other"
 
 local traceback = debug.traceback
 local _, request = protoloader.load()
+local MAX_HEART_BEAT_TIME = tonumber(skynet.getenv("maxHeartBeatTime")) * 100
+local KICK_TO_LOGOUT_TIME = tonumber(skynet.getenv("kickToLogoutTime")) * 100
 
 local User = class("User")
 
@@ -16,10 +19,13 @@ function User:ctor(gated, userId)
 
     self.REQUEST = {}
     self.RESPONSE = {}
+    otherHandler:register(self)
 end
 
 function User:login(fd)
     self.fd = fd
+    self.lastHeartBeatTime = skynet.now()
+    self:heartBeatCheck()
     log.infof("%s user login", self.data.name)
     return self.data
 end
@@ -27,6 +33,36 @@ end
 function User:logout()
     skynet.call(self.gated, "lua", "logout", self.data.accountId)
     log.infof("%s user logout", self.data.name)
+end
+
+function User:heartBeatCheck()
+    if not self.fd then
+        return
+    end
+
+    local t = MAX_HEART_BEAT_TIME - (skynet.now() - self.lastHeartBeatTime)
+    if t <= 0 then
+        --skynet.send(skynet.self(), "lua", "kick")
+    else
+        skynet.timeout(t, function()
+            self:heartBeatCheck()
+        end)
+    end
+end
+
+function User:logoutCheck()
+    if self.fd then
+        return
+    end
+
+    local t = KICK_TO_LOGOUT_TIME - (skynet.now() - self.lastCloseTime)
+    if t <= 0 then
+        skynet.send(skynet.self(), "lua", "logout")
+    else
+        skynet.timeout(t, function()
+            self:logoutCheck()
+        end)
+    end
 end
 
 function User:kick()
@@ -39,6 +75,8 @@ end
 function User:close()
     if self.fd then
         self.fd = nil
+        self.lastCloseTime = skynet.now()
+        self:logoutCheck()
     end
 end
 
@@ -60,6 +98,8 @@ function User:send(name, args)
 end
 
 function User:handleMsg(mType, ...)
+    self.lastHeartBeatTime = skynet.now()
+
     if mType == "REQUEST" then
         self:handleRequest(...)
     else
@@ -76,7 +116,7 @@ function User:handleRequest(name, args, response)
             self:kick()
         else
             if response and ret then
-                self:sendMsg(self.fd, response(ret))
+                self:sendMsg(response(ret))
             end
         end
     else

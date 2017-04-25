@@ -55,3 +55,6 @@ LoginUser 3 {
 		user 1 : UserInfo
 	}
 }
+
+HeartBeat 4 {
+}

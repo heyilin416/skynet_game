@@ -1,7 +1,9 @@
 local skynet = require "skynet"
 local User = require "user.user"
+local protoloader = require "proto.loader"
 
 local traceback = debug.traceback
+local host, _ = protoloader.load()
 
 local gated = tonumber(...)
 local user
@@ -14,7 +16,7 @@ skynet.register_protocol {
 	end,
 	dispatch = function(_, _, type, ...)
 		if user then
-			user.handleMsg(type, ...)
+			user:handleMsg(type, ...)
 		end
 	end,
 }

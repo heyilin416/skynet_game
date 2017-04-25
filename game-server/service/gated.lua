@@ -13,6 +13,11 @@ local onlineAccounts = {}
 local onlineUsers = {}
 local loginLocks = {}
 
+skynet.register_protocol {
+    name = "client",
+    id = skynet.PTYPE_CLIENT,
+}
+
 local handler = {}
 
 function handler.open(source, conf)
@@ -62,7 +67,7 @@ local function loginUser(fd, userData)
             log.noticef("agent pool is empty, new agent(%d) created", agent)
         else
             agent = table.remove(agentPool)
-            log.debugf("agent(%d) assigned, %d remain in pool", agent, #agentPool)
+            log.infof("agent(%d) assigned, %d remain in pool", agent, #agentPool)
         end
     end
 
@@ -106,7 +111,7 @@ function handler.message(fd, msg, size)
     local c = connections[fd]
     local agent = c.agent
     if agent then
-    	skynet.send(agent, "client", msg, size)
+    	skynet.redirect(agent, 0, "client", 0, msg, size)
     else
         local mType, name, args, response = host:dispatch(msg, size)
         if mType ~= "REQUEST" then
@@ -180,7 +185,11 @@ function CMD.logout(accountId)
     if accountInfo then
         onlineAccounts[accountId] = nil
         onlineUsers[accountInfo.userId] = nil
-        table.insert(agentPool, accountInfo.c.agent)
+
+        local agent = accountInfo.c.agent
+        table.insert(agentPool, agent)
+        log.infof("agent(%d) recycle, %d remain in pool", agent, #agentPool)
+
         kick(accountInfo.c.fd)
     end
 end

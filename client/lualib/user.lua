@@ -6,6 +6,8 @@ local loginHandler = require "handler.login"
 
 local traceback = debug.traceback
 local host, request = protoloader.loadClient()
+local HEART_BEAT_INTERVAL = tonumber(skynet.getenv("heartBeatInterval")) * 100
+local MAX_HEART_BEAT_TIME = HEART_BEAT_INTERVAL * 2
 
 local User = class("User")
 
@@ -20,6 +22,8 @@ function User:ctor(serverId, accountName, password)
     self.REQUEST = {}
     self.RESPONSE = {}
     loginHandler:register(self)
+
+    skynet.fork(self.heartBeat, self)
 end
 
 function User:connect(ip, port)
@@ -39,12 +43,40 @@ function User:connect(ip, port)
 end
 
 function User:login()
+    self.data = nil
     local ip = skynet.getenv("loginIp")
     local port = tonumber(skynet.getenv("loginPort"))
     self:connect(ip, port)
 
     log.infof("%s start login", self.accountName)
     self:call("LoginAccount", {accountName = self.accountName, password = md5.sumhexa(self.password)})
+end
+
+function User:heartBeat()
+    while true do
+        if self.data and self.fd then
+            self:call("HeartBeat")
+            skynet.sleep(HEART_BEAT_INTERVAL)
+        else
+            skynet.sleep(100)
+        end
+    end
+end
+
+function User:heartBeatCheck()
+    if not self.fd then
+        return
+    end
+
+    local t = MAX_HEART_BEAT_TIME - (skynet.now() - self.lastHeartBeatTime)
+    if t <= 0 then
+        socket.shutdown(self.fd)
+        self.fd = nil
+    else
+        skynet.timeout(t, function()
+            self:heartBeatCheck()
+        end)
+    end
 end
 
 function User:close(isActive)
@@ -110,8 +142,10 @@ function User:send(name, args)
 end
 
 function User:handleMsg(mType, ...)
+    self.lastHeartBeatTime = skynet.now()
+
     if not mType then
-        log.errorf("%s socket by remote closed", self.accountName)
+        log.errorf("%s socket is closed", self.accountName)
         self:close()
     elseif mType == "REQUEST" then
         self:handleRequest(...)
@@ -129,7 +163,7 @@ function User:handleRequest(name, args, response)
             self:close()
         else
             if response and ret then
-                self:sendMsg(self.fd, response(ret))
+                self:sendMsg(response(ret))
             end
         end
     else
