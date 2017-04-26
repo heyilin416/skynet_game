@@ -1,1 +1,1 @@
-../3rd/skynet/skynet config-linux
+nohup ../3rd/skynet/skynet config-linux > /dev/null 2>&1 &
