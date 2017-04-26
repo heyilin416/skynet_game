@@ -6,8 +6,8 @@ testservice = root .. "test/?.lua;" .. common .. "test/?.lua;" .. skynetRoot .. 
 luaservice = root .. "service/?.lua;" .. common .. "service/?.lua;" .. skynetRoot .. "service/?.lua;" .. testservice
 lualoader = skynetRoot .. "lualib/loader.lua"
 lua_path = root .. "lualib/?.lua;" .. common .. "lualib/?.lua;" .. skynetRoot .. "lualib/?.lua"
-lua_cpath = skynetRoot .. "luaclib-win/?.so"
-cpath = skynetRoot .. "cservice-win/?.so"
+lua_cpath = skynetRoot .. "luaclib/?.so"
+cpath = skynetRoot .. "cservice/?.so"
 
 thread = 8
 logger = "logd"
@@ -18,12 +18,14 @@ start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
 cluster = common .. "lualib/clustername.lua"
-debug_console = 8000
+debug_console = 8001
 
 logLevel = 1
 logIsPrint = true
 logPath = "./log"
 logFlushInterval = 5
 
-loginDB = [[{maxConn = 8, dbName = "login", host = "127.0.0.1"}]]
-loginServer = [[{slave = 8, sessionExpireTime = 600, authTimeout = 10, port = 10001}]]
+maxHeartBeatTime = 10
+kickToLogoutTime = 1800
+gameServer = [[{agentInitPool = 5, maxclient = 1024, nodelay = true, port = 10002}]]
+gameDB = [[{maxConn = 8, dbName = "game", host = "127.0.0.1"}]]

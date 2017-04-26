@@ -70,6 +70,14 @@ end
 
 log.level(tonumber(skynet.getenv("logLevel")) or 3)
 
+function fileExists(name)
+	local file, err = io.open(name)
+	if file then
+		file:close()
+	end
+	return not err or string.find(err, "No such file or directory") == nil
+end
+
 function strTime(time)
 	return os.date("%Y-%m-%d %H:%M:%S", math.ceil(time))
 end
