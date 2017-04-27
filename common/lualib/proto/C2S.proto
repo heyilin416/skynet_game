@@ -12,7 +12,7 @@
 }
 
 .UserInfo {
-	_id 0 : string
+	_id 0 : binary
 	name 1 : string
 	pic 2 : integer
 	level 3 : integer
@@ -26,7 +26,7 @@ LoginAccount 1 {
 
 	response {
 		result 0 : integer
-		accountId 1 : string
+		accountId 1 : binary
 		token 2 : string
 		servers 3 : *ServerInfo
 	}
@@ -34,7 +34,7 @@ LoginAccount 1 {
 
 LoginGame 2 {
 	request {
-		accountId 0 : string
+		accountId 0 : binary
 		accountName 1 : string
 		token 2 : string
 	}
@@ -47,7 +47,7 @@ LoginGame 2 {
 
 LoginUser 3 {
 	request {
-		userId 0 : string
+		userId 0 : binary
 	}
 
 	response {
