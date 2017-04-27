@@ -18,7 +18,7 @@ start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
 cluster = common .. "lualib/clustername.lua"
-debug_console = 8000
+debug_console = 20001
 
 logLevel = 1
 logIsPrint = true
@@ -26,4 +26,5 @@ logPath = "./log"
 logFlushInterval = 5
 
 loginDB = [[{maxConn = 8, dbName = "login", host = "127.0.0.1"}]]
-loginServer = [[{slave = 8, sessionExpireTime = 600, authTimeout = 10, port = 10001}]]
+loginServer = [[{slave = 8, sessionExpireTime = 600, authTimeout = 10, port = 21001}]]
+gmHttpServer = [[{slave = 8, port = 22001, handlerModules = {"http.gm_handler"}}]]

@@ -28,12 +28,20 @@ local function writef(priority, ...)
 	end
 end
 
+function log.canDebug()
+	return level <= 1
+end
+
 function log.debug(...)
 	write(1, ...)
 end
 
 function log.debugf(...)
 	writef(1, ...)
+end
+
+function log.canInfo()
+	return level <= 2
 end
 
 function log.info(...)
@@ -44,6 +52,10 @@ function log.infof(...)
 	writef(2, ...)
 end
 
+function log.canNotice()
+	return level <= 3
+end
+
 function log.notice(...)
 	write(3, ...)
 end
@@ -52,12 +64,20 @@ function log.noticef(...)
 	writef(3, ...)
 end
 
+function log.canWarning()
+	return level <= 4
+end
+
 function log.warning(...)
 	write(4, ...)
 end
 
 function log.warningf(...)
 	writef(4, ...)
+end
+
+function log.canError()
+	return level <= 5
 end
 
 function log.error(...)
@@ -105,4 +125,17 @@ end
 function sendMsg(fd, msg)
     local package = string.pack(PACKET_PACK_FMT, msg)
     socketdriver.send(fd, package)
+end
+
+function getNameUpvalue(func, name)
+	local i = 1
+	while true do
+		local vname, value = debug.getupvalue(func, i)
+		if vname == nil then
+			return
+		elseif vname == name then
+			return i, value
+		end
+		i=i+1
+	end
 end

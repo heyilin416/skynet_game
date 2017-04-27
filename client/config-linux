@@ -17,7 +17,7 @@ harbor = 0
 start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
-debug_console = 9000
+debug_console = 8000
 
 logLevel = 1
 logIsPrint = true
@@ -26,7 +26,7 @@ logFlushInterval = 5
 
 heartBeatInterval = 5
 loginIp = "127.0.0.1"
-loginPort = 10001
+loginPort = 21001
 serverId = 1
 accountPrefixName = "test"
 password = "123456"

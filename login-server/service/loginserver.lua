@@ -22,14 +22,15 @@ function CMD.init(conf)
     local host = conf.host or "0.0.0.0"
     local port = assert(tonumber(conf.port))
     local sock = socket.listen(host, port)
-
     skynet.error(string.format("Listen on %s:%d", host, port))
 
     local balance = 1
     socket.start(sock, function(fd, addr)
         local s = slave[balance]
         balance = balance + 1
-        if balance > nslave then balance = 1 end
+        if balance > nslave then 
+            balance = 1 
+        end
 
         skynet.send(s, "lua", "auth", fd, addr)
         log.info("socket connect", fd, addr)

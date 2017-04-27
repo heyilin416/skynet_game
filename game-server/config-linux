@@ -18,7 +18,7 @@ start = "main"
 bootstrap = "snlua bootstrap"
 preload = common .. "lualib/global/preload.lua"
 cluster = common .. "lualib/clustername.lua"
-debug_console = 8001
+debug_console = 30001
 
 logLevel = 1
 logIsPrint = true
@@ -27,5 +27,6 @@ logFlushInterval = 5
 
 maxHeartBeatTime = 10
 kickToLogoutTime = 1800
-gameServer = [[{agentInitPool = 5, maxclient = 1024, nodelay = true, port = 10002}]]
 gameDB = [[{maxConn = 8, dbName = "game", host = "127.0.0.1"}]]
+gameServer = [[{agentInitPool = 5, maxclient = 1024, nodelay = true, port = 31001}]]
+gmHttpServer = [[{slave = 8, port = 32001, handlerModules = {"http.gm_handler"}}]]
