@@ -1,5 +1,6 @@
 local skynet = require "skynet"
 local REQUEST = require "gm_handler"
+local json = require "json"
 
 function REQUEST.runUserCode(args, header, body)
 	local result
@@ -8,7 +9,7 @@ function REQUEST.runUserCode(args, header, body)
 	else
 		result = skynet.call(".gated", "lua", "runUserCodeByName", args.userName, args.code)
 	end
-	return tostring(result)
+	return json.encode(result)
 end
 
 return REQUEST
