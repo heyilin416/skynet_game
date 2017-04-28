@@ -1,8 +1,9 @@
 local skynet = require "skynet"
 require "skynet.manager"
+local gameDB = require "db.game"
 local gateserver = require "snax.gateserver"
 local protoloader = require "proto.loader"
-local packetHandler = require "gate_handler"
+local packetHandler = require "gate.packet_handler"
 
 local traceback = debug.traceback
 
@@ -11,12 +12,43 @@ local connections = {}
 local agentPool = {}
 local onlineAccounts = {}
 local onlineUsers = {}
-local loginLocks = {}
 
 skynet.register_protocol {
     name = "client",
     id = skynet.PTYPE_CLIENT,
 }
+
+local function loginUser(c, accountId, userId)
+    local agent
+    local accountInfo = onlineAccounts[accountId]
+    if accountInfo then
+        if accountInfo.userId == userId then
+            if accountInfo.c.fd then
+                skynet.call(accountInfo.c.agent, "lua", "kick")
+            end
+            agent = accountInfo.c.agent
+        else
+            skynet.call(accountInfo.c.agent, "lua", "logout")
+        end
+    end
+
+    if not agent then
+        if #agentPool == 0 then
+            agent = skynet.newservice("agent", skynet.self())
+            log.noticef("agent pool is empty, new agent(%d) created", agent)
+        else
+            agent = table.remove(agentPool)
+            log.infof("agent(%d) assigned, %d remain in pool", agent, #agentPool)
+        end
+    end
+
+    local userData = skynet.call(agent, "lua", "login", c.fd, userId)
+    c.agent = agent
+    onlineAccounts[accountId] = {userId = userId, c = c}
+    onlineUsers[userId] = c
+    return userData
+end
+packetHandler.loginUser = loginUser
 
 local handler = {}
 
@@ -42,47 +74,14 @@ function handler.connect(fd, addr)
     log.info("socket connect", fd, addr)
 end
 
-local function loginUser(fd, userData)
-    local c = connections[fd]
-    if not c then
-        return
-    end
-
-    local agent
-    local accountInfo = onlineAccounts[userData.accountId]
-    if accountInfo then
-        if accountInfo.userId == userData._id then
-            if accountInfo.c.fd then
-                skynet.call(accountInfo.c.agent, "lua", "kick")
-            end
-            agent = accountInfo.c.agent
-        else
-            skynet.call(accountInfo.c.agent, "lua", "logout")
-        end
-    end
-
-    if not agent then
-        if #agentPool == 0 then
-            agent = skynet.newservice("agent", skynet.self())
-            log.noticef("agent pool is empty, new agent(%d) created", agent)
-        else
-            agent = table.remove(agentPool)
-            log.infof("agent(%d) assigned, %d remain in pool", agent, #agentPool)
-        end
-    end
-
-    c.agent = agent
-    onlineAccounts[userData.accountId] = { c = c, userId = userData._id }
-    onlineUsers[userData._id] = c
-    return skynet.call(agent, "lua", "login", fd, userData._id)
-end
-
 local function close(fd)
     local c = connections[fd]
     if c then
         c.fd = nil
         connections[fd] = nil
-        skynet.call(c.agent, "lua", "close")
+        if c.agent then
+            skynet.call(c.agent, "lua", "close")
+        end
     end
 end
 
@@ -109,6 +108,10 @@ end
 
 function handler.message(fd, msg, size)
     local c = connections[fd]
+    if not c then
+        return
+    end
+
     local agent = c.agent
     if agent then
     	skynet.redirect(agent, 0, "client", 0, msg, size)
@@ -133,38 +136,14 @@ function handler.message(fd, msg, size)
 
         local f = packetHandler[name]
         if f then
-            local ok, ret = xpcall(f, traceback, args)
+            local ok, ret = xpcall(f, traceback, c, args)
             if not ok then
                 log.errorf("%s handle message(%s) failed : %s", fd, name, ret)
                 kick(fd)
-            else
-                if ret then
-                    if ret.result == ErrorCode.SUCCESS then
-                        if name == "LoginGame" then
-                            c.isCheck = true
-                        elseif name == "LoginUser" then
-                            local accountId = ret.user.accountId
-                        	if loginLocks[accountId] then
-                        		ret = {result = ErrorCode.ERR_USER_IS_LOGINING}
-                        	else
-                        		loginLocks[accountId] = true
-                            	local ok, user = xpcall(loginUser, traceback, fd, ret.user)
-                            	if ok then
-                            		ret.user = user
-                            	else
-                            		log.error("login user failed :", user)
-                            	end
-                            	loginLocks[accountId] = nil
-                            end
-                        end
-                    end
-
-                    if response then
-                        sendMsg(fd, response(ret))
-                        if ret.result ~= ErrorCode.SUCCESS and not ret.isKeepAlive then
-                            kick(fd)
-                        end
-                    end
+            elseif ret and response then
+                sendMsg(fd, response(ret))
+                if ret.result ~= ErrorCode.SUCCESS and not ret.isKeepAlive then
+                    kick(fd)
                 end
             end
         else
@@ -174,7 +153,7 @@ function handler.message(fd, msg, size)
     end
 end
 
-local CMD = {}
+local CMD = require "gate.username_mgr"
 
 function CMD.kick(fd)
     kick(fd)
@@ -192,6 +171,44 @@ function CMD.logout(accountId)
 
         kick(accountInfo.c.fd)
     end
+end
+
+function CMD.runUserCodeById(userId, code)
+    local accountId = gameDB:getUserAccountId(userId)
+    if not accountId then
+        return {result = ErrorCode.ERR_USER_NOT_EXIST}
+    end
+
+    if not packetHandler.loginLock(accountId) then
+        log.errorf("run user code login lock timeout(userId=%s, code=%s)", strToHex(userId), code)
+        return {result = ErrorCode.ERR_LOCK_TIMEOUT}
+    end
+
+    local c = onlineUsers[userId]
+    if not c then
+        c = {}
+        local ok, err = xpcall(loginUser, traceback, c, accountId, userId)
+        if not ok then
+            packetHandler.loginUnlock(accountId)
+            log.errorf("run user code login user error(userId=%s, code=%s, err=%s)", strToHex(userId), code, err)
+            return {result = ErrorCode.ERR_UNKNOW}
+        end
+    end
+    packetHandler.loginUnlock(accountId)
+
+    local result = skynet.call(c.agent, "lua", "runUserCode", code)
+    if result.result == ErrorCode.ERR_USER_NOT_EXIST then
+        return CMD.runUserCodeById(userId, code)
+    end
+    return result
+end
+
+function CMD.runUserCodeByName(userName, code)
+    local userId = CMD.getUserID(userName)
+    if not userId then
+        return {result = ErrorCode.ERR_USERNAME_NOT_EXIST}
+    end
+    return CMD.runUserCodeById(userId, code)
 end
 
 function handler.command(cmd, _, ...)

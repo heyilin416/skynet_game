@@ -35,8 +35,7 @@ LoginAccount 1 {
 LoginGame 2 {
 	request {
 		accountId 0 : binary
-		accountName 1 : string
-		token 2 : string
+		token 1 : string
 	}
 
 	response {

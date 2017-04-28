@@ -52,6 +52,15 @@ function CMD.close()
 	end
 end
 
+function CMD.runUserCode(code)
+	if user then
+		local env = setmetatable({user = user}, {__index = _ENV})
+		local func = load(code, nil, "bt", env)
+		return {result = ErrorCode.SUCCESS, codeResult = func()}
+	end
+	return {result = ErrorCode.ERR_USER_NOT_EXIST}
+end
+
 skynet.start (function ()
 	skynet.dispatch ("lua", function(_, _, command, ...)
 		local f = CMD[command]

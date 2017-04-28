@@ -31,4 +31,4 @@ serverId = 1
 accountPrefixName = "test"
 password = "123456"
 clientBegin = 1
-clientEnd = 1
+clientEnd = 5
