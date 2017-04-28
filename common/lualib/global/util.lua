@@ -139,3 +139,17 @@ function getNameUpvalue(func, name)
 		i=i+1
 	end
 end
+
+function reloadModule(moduleName)
+    local oldModule = _G[moduleName]
+
+    package.loaded[moduleName] = nil
+    require(moduleName)
+
+    local newModule = _G[moduleName]
+    for k, v in pairs(newModule) do
+        oldModule[k] = v
+    end
+
+    package.loaded[moduleName] = oldModule
+end
